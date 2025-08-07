@@ -1,4 +1,5 @@
 ﻿using Crud.Models;
+using Crud.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoCrudApp.Services;
@@ -6,42 +7,55 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MongoDB config
+// ------------------ MongoDB Config ------------------
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDB"));
-builder.Services.AddSingleton<StudentService>();
 
+// ------------------ JWT Config ------------------
+var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSettingsSection);
+
+// Bind JwtSettings values to object
+var jwtSettings = jwtSettingsSection.Get<JwtSettings>();
+builder.Services.AddSingleton(jwtSettings);
+
+// ------------------ Service Registrations ------------------
+builder.Services.AddSingleton<StudentService>();
+builder.Services.AddScoped<JwtService>();
+
+// ------------------ JWT Authentication ------------------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => {
+    .AddJwtBearer(options =>
+    {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = "your-app",
-            ValidAudience = "your-app",
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes("your-secret-key"))
+                Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
         };
     });
 
-
-
-
-// MVC & API support                                                                                                            
+// ------------------ MVC & API Support ------------------
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
-app.UseAuthentication();
+
+// ------------------ Middleware Pipeline ------------------
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthorization();
 
-app.MapControllers(); // ← This is important for API routes like /api/studentapi
+app.UseAuthentication(); // Enable JWT authentication
+app.UseAuthorization();  // Enable role/claims authorization
+
+// ------------------ Endpoints ------------------
+app.MapControllers(); // API Controllers
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
 app.Run();
