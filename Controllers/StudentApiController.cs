@@ -31,5 +31,21 @@ namespace MongoCrudApp.Controllers
             await _studentService.CreateAsync(student);
             return CreatedAtAction(nameof(GetAll), new { id = student.Id }, student);
         }
+
+        [HttpDelete ("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var student = await _studentService.GetByIdAsync(id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+            // Assuming you have a method to delete by Id
+            await _studentService.DeleteAsync(id);
+            return NoContent();
+        }
+    
     }
+
+
 }

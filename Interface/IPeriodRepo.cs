@@ -1,7 +1,6 @@
 ﻿namespace Crud.Controllers
 {
-    public class AuthApiController
+    public class IPeriodRepo
     {
-
     }
 }

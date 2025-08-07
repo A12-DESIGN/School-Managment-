@@ -26,5 +26,15 @@ namespace MongoCrudApp.Services
         {
             await _students.InsertOneAsync(student);
         }
+
+        public async Task DeleteAsync(string id)
+        {
+            var filter = Builders<Student>.Filter.Eq(s => s.Id, id);
+            var result = await _students.DeleteOneAsync(filter);
+            if (result.DeletedCount == 0)
+            {
+                throw new Exception($"No student found with Id: {id}");
+            }
+        }
     }
 }
